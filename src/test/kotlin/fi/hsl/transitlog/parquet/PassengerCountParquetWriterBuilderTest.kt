@@ -1,12 +1,11 @@
 package fi.hsl.transitlog.parquet
 
 import fi.hsl.common.passengercount.proto.PassengerCount
+import org.apache.parquet.hadoop.metadata.CompressionCodecName
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlin.test.Test
 import kotlin.test.assertTrue
 
@@ -17,7 +16,7 @@ class PassengerCountParquetWriterBuilderTest {
     private val testData = PassengerCount.Data.newBuilder()
         .setSchemaVersion(1)
         .setReceivedAt(Instant.now().toEpochMilli())
-        .setTopic("test/test_1")
+        .setTopic("/hfp/v2/journey/ongoing/apc/bus/0017/00015")
         .setPayload(PassengerCount.Payload.newBuilder()
             .setVeh(6)
             .setDesi("550")
@@ -27,7 +26,7 @@ class PassengerCountParquetWriterBuilderTest {
             .setLoc("GPS")
             .setLine(4)
             .setLong(24.626)
-            .setOday(LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE))
+            .setOday("2023-03-14")
             .setOdo(77743.0)
             .setOper(9)
             .setRoute("2550")
@@ -64,8 +63,9 @@ class PassengerCountParquetWriterBuilderTest {
     fun `Test writing passenger count data to Parquet file`() {
         val file = tempDir.resolve("test.parquet")
 
-        val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(file).build()
+        val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(file).withCompressionCodec(CompressionCodecName.ZSTD).build()
 
+        passengerCountParquetWriter.write(testData)
         passengerCountParquetWriter.write(testData)
         passengerCountParquetWriter.close()
 
