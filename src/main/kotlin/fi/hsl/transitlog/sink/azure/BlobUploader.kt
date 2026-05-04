@@ -1,5 +1,6 @@
 package fi.hsl.transitlog.sink.azure
 
+import com.azure.identity.DefaultAzureCredentialBuilder
 import com.azure.storage.blob.BlobServiceClientBuilder
 import mu.KotlinLogging
 import java.io.BufferedOutputStream
@@ -8,19 +9,30 @@ import java.nio.file.Path
 
 private const val BUFFER_SIZE = 65536;
 
-class BlobUploader(connectionString: String, blobContainer: String) {
+class BlobUploader(blobAccountName: String, blobContainer: String) {
     private val log = KotlinLogging.logger {}
 
-    private val blobServiceClient = BlobServiceClientBuilder().connectionString(connectionString).buildClient()
+    private val blobServiceClient = BlobServiceClientBuilder()
+        .endpoint("https://$blobAccountName.blob.core.windows.net")
+        .credential(DefaultAzureCredentialBuilder().build())
+        .buildClient()
+
     private val blobContainerClient by lazy {
-        if (blobServiceClient.getBlobContainerClient(blobContainer).exists()) {
-            blobServiceClient.getBlobContainerClient(blobContainer)
+        val containerClient = blobServiceClient.getBlobContainerClient(blobContainer)
+
+        if (containerClient.exists()) {
+            containerClient
         } else {
             blobServiceClient.createBlobContainer(blobContainer)
         }
     }
 
-    fun uploadFromFile(path: Path, blobName: String = path.fileName.toString(), metadata: Map<String, String>? = null, tags: Map<String, String>? = null): String {
+    fun uploadFromFile(
+        path: Path,
+        blobName: String = path.fileName.toString(),
+        metadata: Map<String, String>? = null,
+        tags: Map<String, String>? = null
+    ): String {
         log.info { "Uploading $path to blob $blobName" }
 
         val blobClient = blobContainerClient.getBlobClient(blobName)

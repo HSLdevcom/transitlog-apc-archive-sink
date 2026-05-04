@@ -18,14 +18,14 @@ private val log = KotlinLogging.logger {}
 class MessageHandler(private val pulsarApplicationContext: PulsarApplicationContext) : IMessageHandler, AutoCloseable {
     private val config = pulsarApplicationContext.config!!
 
-    private val blobConnectionString = config.getString("application.sink.azure.blobConnectionString")
+    private val blobAccountName = config.getString("application.sink.azure.blobAccountName")
     private val blobContainer = config.getString("application.sink.azure.blobContainer")
 
     private val unackedMessageLimiter = Semaphore(config.getInt("application.maxUnackedMessages"))
 
     private val apcArchiveService = ApcArchiveService(
         Paths.get("apc"),
-        AzureSink(BlobUploader(blobConnectionString, blobContainer)),
+        AzureSink(BlobUploader(blobAccountName, blobContainer)),
         config.getBoolean("application.fastUpload"),
         ::ack
     )
