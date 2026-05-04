@@ -25,7 +25,7 @@ class MessageHandler(private val pulsarApplicationContext: PulsarApplicationCont
 
     private val apcArchiveService = ApcArchiveService(
         Paths.get("apc"),
-        AzureSink(BlobUploader(blobAccountName, blobContainer)),
+        AzureSink(BlobUploader.withDefaultAzureCredential(blobAccountName, blobContainer)),
         config.getBoolean("application.fastUpload"),
         ::ack
     )
