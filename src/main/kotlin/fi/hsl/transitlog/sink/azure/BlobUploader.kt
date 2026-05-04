@@ -1,3 +1,4 @@
+package fi.hsl.transitlog.sink.azure
 import com.azure.identity.DefaultAzureCredentialBuilder
 import com.azure.storage.blob.BlobServiceClient
 import com.azure.storage.blob.BlobServiceClientBuilder
@@ -5,6 +6,8 @@ import mu.KotlinLogging
 import java.io.BufferedOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
+
+private const val BUFFER_SIZE = 65536
 
 class BlobUploader private constructor(
     private val blobServiceClient: BlobServiceClient,
