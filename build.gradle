@@ -15,6 +15,15 @@ application {
     mainClassName = 'fi.hsl.transitlog.MainKt'
 }
 
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "transitlog-apc-archive-sink"
+
 repositories {
     mavenCentral()
     maven {
