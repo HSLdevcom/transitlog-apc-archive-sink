@@ -48,6 +48,8 @@ dependencies {
 
     implementation 'org.apache.parquet:parquet-hadoop:1.12.3'
     implementation 'org.apache.hadoop:hadoop-core:1.2.1'
+
+    implementation "com.azure:azure-identity:1.13.3"
 }
 
 test {
