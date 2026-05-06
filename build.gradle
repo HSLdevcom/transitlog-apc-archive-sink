@@ -15,15 +15,6 @@ application {
     mainClassName = 'fi.hsl.transitlog.MainKt'
 }
 
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-    }
-}
-
-rootProject.name = "transitlog-apc-archive-sink"
-
 repositories {
     mavenCentral()
     maven {
@@ -44,7 +35,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.4.5'
     implementation 'io.github.microutils:kotlin-logging-jvm:3.0.5'
 
-    implementation ('fi.hsl:transitdata-common:2.0.7') {
+    implementation ('fi.hsl:transitdata-common:3.0.0') {
         exclude group: 'javax.xml.bind', module: 'activation'
     }
     //Needed for Pulsar
