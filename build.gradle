@@ -1,14 +1,14 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version '1.7.10'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
+    id 'com.gradleup.shadow' version '9.1.0'
+    id 'org.jetbrains.kotlin.jvm' version '2.3.0'
     id 'application'
 }
 
 group = 'fi.hsl'
 version = '2.0.0'
 
-shadowJar {
-    archiveFileName ="${baseName}.${extension}"
+tasks.named("shadowJar") {
+    archiveFileName.set("transitlog-apc-archive-sink.jar")
 }
 
 application {
@@ -31,7 +31,7 @@ dependencies {
 
     testImplementation "org.testcontainers:testcontainers:1.17.6"
     testImplementation "org.testcontainers:junit-jupiter:1.17.6"
-
+    implementation "com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.20.1"
     implementation 'ch.qos.logback:logback-classic:1.4.5'
     implementation 'io.github.microutils:kotlin-logging-jvm:3.0.5'
 
@@ -56,10 +56,6 @@ test {
     useJUnitPlatform()
 }
 
-compileKotlin {
-    kotlinOptions.jvmTarget = '11'
-}
-
-compileTestKotlin {
-    kotlinOptions.jvmTarget = '11'
+kotlin {
+    jvmToolchain(25)
 }
