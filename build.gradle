@@ -9,6 +9,7 @@ version = '2.0.0'
 
 tasks.named("shadowJar") {
     archiveFileName.set("transitlog-apc-archive-sink.jar")
+    zip64 = true
 }
 
 application {
