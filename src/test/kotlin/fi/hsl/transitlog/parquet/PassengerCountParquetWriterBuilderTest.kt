@@ -10,7 +10,6 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Disabled
 
-@Disabled("Hadoop/Parquet currently incompatible with Java 25 Subject.getSubject")
 class PassengerCountParquetWriterBuilderTest {
     @field:TempDir
     lateinit var tempDir: Path
