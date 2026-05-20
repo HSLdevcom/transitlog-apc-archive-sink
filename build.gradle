@@ -12,7 +12,7 @@ tasks.named("shadowJar") {
 }
 
 application {
-    mainClassName = 'fi.hsl.transitlog.MainKt'
+    mainClass.set('fi.hsl.transitlog.MainKt')
 }
 
 repositories {
