@@ -13,8 +13,9 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: gradle
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Run tests
+        timeout-minutes: 10
+        run: ./gradlew clean test --no-daemon --info
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Build shadow JAR
@@ -26,7 +27,6 @@ jobs:
         with:
           name: transitlog-apc-archive-sink.jar
           path: build/libs/transitlog-apc-archive-sink.jar
-          retention-days: 1
   build-jar:
     runs-on: ubuntu-latest
     steps:
