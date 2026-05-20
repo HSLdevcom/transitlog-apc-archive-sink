@@ -75,7 +75,7 @@ class PassengerCountParquetWriterBuilderTest {
     private fun testWritingData(passengerCount: PassengerCount.Data) {
         val file = tempDir.resolve("test.parquet")
 
-        val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(file).withCompressionCodec(CompressionCodecName.UNCOMPRESSED).build()
+        val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(file).withCompressionCodec(CompressionCodecName.ZSTD).build()
 
         passengerCountParquetWriter.write(passengerCount)
         passengerCountParquetWriter.close()

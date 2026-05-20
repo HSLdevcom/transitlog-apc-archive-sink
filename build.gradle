@@ -55,6 +55,7 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    jvmArgs "-Djava.security.manager=allow"
 }
 
 kotlin {
