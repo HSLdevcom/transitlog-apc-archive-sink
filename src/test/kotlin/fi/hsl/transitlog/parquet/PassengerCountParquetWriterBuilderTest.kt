@@ -8,6 +8,7 @@ import java.nio.file.Path
 import java.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Disabled
 
 class PassengerCountParquetWriterBuilderTest {
     @field:TempDir

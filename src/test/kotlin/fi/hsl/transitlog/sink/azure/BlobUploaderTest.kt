@@ -37,7 +37,7 @@ class BlobUploaderTest {
         ThreadLocalRandom.current().nextBytes(data)
         Files.write(testFile, data)
 
-        val uploader = BlobUploader(connString, "test")
+        val uploader = BlobUploader.withConnectionString(connString, "test")
         val uploadedBlobName = uploader.uploadFromFile(testFile)
 
         assertEquals("test.dat", uploadedBlobName)
