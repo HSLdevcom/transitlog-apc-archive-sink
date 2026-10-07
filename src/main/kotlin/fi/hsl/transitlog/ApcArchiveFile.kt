@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
+import java.util.zip.CRC32
 
 /**
  * @param contentDuration The period for which the file should contain data
@@ -22,8 +23,7 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
     //Duration for which the file should contain data
     private val contentDuration = Duration.ofNanos(apcFileDescriptor.contentStart.until(apcFileDescriptor.contentEnd, ChronoUnit.NANOS))
 
-    //Path to CRC file created by Parquet writer
-    private val crcPath = path.parent.resolve(".${path.fileName}.crc")
+    private val legacyCrcPath = path.parent.resolve(".${path.fileName}.crc")
 
     private val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(path)
         .withCompressionCodec(CompressionCodecName.ZSTD) //Zstd has best balance between compression speed and ratio. Azure Data Factory might not support Zstd
@@ -99,14 +99,31 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
         val metadata = mutableMapOf<String, String>()
 
         metadata["row_count"] = rowCount.toString()
-        metadata["parquet_crc"] = Base64.getEncoder().encodeToString(Files.readAllBytes(crcPath))
+        val crc = CRC32()
+        Files.newInputStream(path).use { input ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val bytesRead = input.read(buffer)
+                if (bytesRead < 0) {
+                    break
+                }
+                crc.update(buffer, 0, bytesRead)
+            }
+        }
+        val crcBytes = byteArrayOf(
+            (crc.value ushr 24).toByte(),
+            (crc.value ushr 16).toByte(),
+            (crc.value ushr 8).toByte(),
+            crc.value.toByte()
+        )
+        metadata["parquet_crc"] = Base64.getEncoder().encodeToString(crcBytes)
 
         return metadata.toMap()
     }
 
     fun delete() {
         Files.deleteIfExists(path)
-        Files.deleteIfExists(crcPath)
+        Files.deleteIfExists(legacyCrcPath)
     }
 
     override fun close() {
