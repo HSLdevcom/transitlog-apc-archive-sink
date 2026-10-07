@@ -4,6 +4,7 @@ import fi.hsl.common.passengercount.proto.PassengerCount
 import fi.hsl.transitlog.sink.Sink
 import mu.KotlinLogging
 import org.apache.pulsar.client.api.MessageId
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.*
@@ -41,11 +42,31 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
     private val apcFileDescriptorFactory = ApcArchiveFile.ApcFileDescriptorFactory(dataDirectory, CONTENT_DURATION)
 
     init {
+        Files.createDirectories(dataDirectory)
+
         //Start task for writing data to files in batches every 30s
-        scheduledExecutor.scheduleWithFixedDelay(::writeData, BATCH_WRITE_INTERVAL.toMillis(), BATCH_WRITE_INTERVAL.toMillis(), TimeUnit.MILLISECONDS)
+        scheduledExecutor.scheduleWithFixedDelay(
+            { runScheduledTask("write APC data", ::writeData) },
+            BATCH_WRITE_INTERVAL.toMillis(),
+            BATCH_WRITE_INTERVAL.toMillis(),
+            TimeUnit.MILLISECONDS
+        )
 
         //Start task for uploading data to Azure Blob Storage
-        scheduledExecutor.scheduleWithFixedDelay(::uploadReadyFiles, (CONTENT_DURATION + BATCH_WRITE_INTERVAL).toMillis(), CONTENT_DURATION.dividedBy(3).toMillis(), TimeUnit.MILLISECONDS)
+        scheduledExecutor.scheduleWithFixedDelay(
+            { runScheduledTask("upload ready APC files", ::uploadReadyFiles) },
+            (CONTENT_DURATION + BATCH_WRITE_INTERVAL).toMillis(),
+            CONTENT_DURATION.dividedBy(3).toMillis(),
+            TimeUnit.MILLISECONDS
+        )
+    }
+
+    private fun runScheduledTask(taskName: String, task: () -> Unit) {
+        try {
+            task()
+        } catch (e: Exception) {
+            log.error(e) { "Failed to $taskName" }
+        }
     }
 
     private fun writeData() {
