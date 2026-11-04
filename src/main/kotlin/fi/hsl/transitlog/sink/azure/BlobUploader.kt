@@ -20,6 +20,10 @@ class BlobUploader private constructor(
             blobAccountName: String,
             blobContainer: String,
         ): BlobUploader {
+            require(blobAccountName.isNotBlank()) {
+                "Azure Blob Storage account name is required; set BLOB_STORAGE_ACCOUNT_NAME or BLOB_ACCOUNT_NAME"
+            }
+
             val client =
                 BlobServiceClientBuilder()
                     .endpoint("https://$blobAccountName.blob.core.windows.net")
