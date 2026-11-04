@@ -18,15 +18,17 @@ class BlobUploaderTest {
     lateinit var tempDir: Path
 
     @Container
-    val azurite = GenericContainer(DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite"))
-        .withCommand("azurite-blob --blobHost 0.0.0.0 --blobPort 10000")
-        .withExposedPorts(10000)
+    val azurite =
+        GenericContainer(DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite"))
+            .withCommand("azurite-blob --blobHost 0.0.0.0 --blobPort 10000")
+            .withExposedPorts(10000)
 
     private lateinit var connString: String
 
     @BeforeEach
     fun generateConnString() {
-        connString = "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://${azurite.host}:${azurite.firstMappedPort}/devstoreaccount1;"
+        connString =
+            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://${azurite.host}:${azurite.firstMappedPort}/devstoreaccount1;"
     }
 
     @Test

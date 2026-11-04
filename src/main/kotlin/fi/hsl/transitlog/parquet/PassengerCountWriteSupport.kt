@@ -1,6 +1,5 @@
 package fi.hsl.transitlog.parquet
 
-
 import fi.hsl.common.passengercount.proto.PassengerCount
 import fi.hsl.common.passengercount.proto.PassengerCount.Count
 import fi.hsl.common.passengercount.proto.PassengerCount.DoorCount
@@ -14,15 +13,16 @@ import java.nio.ByteBuffer
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.UUID
 
 private val log = KotlinLogging.logger {}
 
-class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSupport<PassengerCount.Data>() {
+class PassengerCountWriteSupport(
+    private val messageType: MessageType,
+) : WriteSupport<PassengerCount.Data>() {
     private lateinit var recordConsumer: RecordConsumer
 
-    override fun init(configuration: Configuration?): WriteContext =
-        WriteContext(messageType, emptyMap())
+    override fun init(configuration: Configuration?): WriteContext = WriteContext(messageType, emptyMap())
 
     override fun prepareForWrite(recordConsumer: RecordConsumer) {
         this.recordConsumer = recordConsumer
@@ -35,9 +35,19 @@ class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSu
         return bb.array()
     }
 
-    private fun <T> writeField(index: Int, fieldName: String, value: T?, valueMapper: ((T) -> Any)? = null) {
+    private fun <T> writeField(
+        index: Int,
+        fieldName: String,
+        value: T?,
+        valueMapper: ((T) -> Any)? = null,
+    ) {
         if (value != null) {
-            val valueToWrite = if (valueMapper != null) { valueMapper(value) } else { value }
+            val valueToWrite =
+                if (valueMapper != null) {
+                    valueMapper(value)
+                } else {
+                    value
+                }
 
             recordConsumer.startField(fieldName, index)
             when (valueToWrite) {
@@ -53,25 +63,25 @@ class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSu
     }
 
     private fun buildTopicString(topic: PassengerCount.Topic): String {
-        var topicPrefix = topic.topicPrefix;
+        var topicPrefix = topic.topicPrefix
 
         if ("/hfp/".equals(topicPrefix)) {
             topicPrefix = "/hfp"
         }
 
-        val fields = arrayOf(
-            topicPrefix,
-            topic.topicVersion,
-            topic.journeyType,
-            topic.temporalType,
-            topic.eventType,
-            topic.transportMode,
-            topic.operatorId.toString().padStart(4, '0'),
-            topic.vehicleNumber.toString().padStart(5, '0')
-        )
+        val fields =
+            arrayOf(
+                topicPrefix,
+                topic.topicVersion,
+                topic.journeyType,
+                topic.temporalType,
+                topic.eventType,
+                topic.transportMode,
+                topic.operatorId.toString().padStart(4, '0'),
+                topic.vehicleNumber.toString().padStart(5, '0'),
+            )
         return fields.joinToString(separator = "/")
     }
-
 
     override fun write(record: PassengerCount.Data) {
         recordConsumer.startMessage()
@@ -85,14 +95,22 @@ class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSu
                 "oper" -> writeField(i, fieldName, record.payload.oper)
                 "veh" -> writeField(i, fieldName, record.payload.veh)
                 "tst" -> writeField(i, fieldName, record.payload.tst)
-                "tsi" -> writeField(i, fieldName, record.payload.tsi) { it * 1000 } //Tsi is in seconds, but Parquet timestamp only supports milliseconds
+                // Tsi is in seconds, but Parquet timestamps support only milliseconds.
+                "tsi" -> writeField(i, fieldName, record.payload.tsi) { it * 1000 }
                 "lat" -> writeField(i, fieldName, record.payload.lat)
                 "long" -> writeField(i, fieldName, record.payload.long)
                 "odo" -> writeField(i, fieldName, record.payload.odo)
-                "oday" -> writeField(i, fieldName, record.payload.oday) { LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay().toInt() }
+                "oday" ->
+                    writeField(i, fieldName, record.payload.oday) {
+                        LocalDate.parse(it, DateTimeFormatter.ISO_LOCAL_DATE).toEpochDay().toInt()
+                    }
                 "jrn" -> writeField(i, fieldName, record.payload.jrn)
                 "line" -> writeField(i, fieldName, record.payload.line)
-                "start" -> writeField(i, fieldName, record.payload.start) { LocalTime.parse(it, DateTimeFormatter.ISO_LOCAL_TIME).toSecondOfDay() * 1000 }
+                "start" ->
+                    writeField(i, fieldName, record.payload.start) {
+                        LocalTime.parse(it, DateTimeFormatter.ISO_LOCAL_TIME).toSecondOfDay() *
+                            1000
+                    }
                 "loc" -> writeField(i, fieldName, record.payload.loc)
                 "stop" -> writeField(i, fieldName, record.payload.stop)
                 "route" -> writeField(i, fieldName, record.payload.route)
@@ -100,13 +118,16 @@ class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSu
                 "vehicle_load" -> writeField(i, fieldName, record.payload.vehicleCounts.vehicleLoad)
                 "vehicle_load_ratio" -> writeField(i, fieldName, record.payload.vehicleCounts.vehicleLoadRatio)
                 "door_counts" -> {
-                    if (record.payload.vehicleCounts.doorCountsList.isNotEmpty()) {
+                    if (record.payload.vehicleCounts.doorCountsList
+                            .isNotEmpty()
+                    ) {
                         recordConsumer.startField(fieldName, i)
                         recordConsumer.startGroup()
 
                         recordConsumer.startField("list", 0)
 
-                        record.payload.vehicleCounts.doorCountsList.forEach(::writeDoorCount)
+                        record.payload.vehicleCounts.doorCountsList
+                            .forEach(::writeDoorCount)
 
                         recordConsumer.endField("list", 0)
 
@@ -120,7 +141,7 @@ class PassengerCountWriteSupport(private val messageType: MessageType) : WriteSu
         recordConsumer.endMessage()
     }
 
-    //TODO: think about better way to handle field indexes
+    // TODO: think about better way to handle field indexes
     private fun writeDoorCount(doorCount: DoorCount) {
         recordConsumer.startGroup()
         recordConsumer.startField("element", 0)

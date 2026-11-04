@@ -1,9 +1,9 @@
 name: "Code analysis"
 on:
   push:
-    branches: [ "master", "dev" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master", "dev" ]
+    branches: [ "main" ]
   schedule:
     - cron: '0 8 * * *'
 jobs:
@@ -32,7 +32,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: 25
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4

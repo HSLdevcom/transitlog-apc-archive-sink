@@ -6,12 +6,12 @@ import java.io.OutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 
-class LocalOutputFile(private val path: Path) : OutputFile {
-    override fun create(blockSizeHint: Long): PositionOutputStream =
-        LocalPositionOutputStream(Files.newOutputStream(path))
+class LocalOutputFile(
+    private val path: Path,
+) : OutputFile {
+    override fun create(blockSizeHint: Long): PositionOutputStream = LocalPositionOutputStream(Files.newOutputStream(path))
 
-    override fun createOrOverwrite(blockSizeHint: Long): PositionOutputStream =
-        LocalPositionOutputStream(Files.newOutputStream(path))
+    override fun createOrOverwrite(blockSizeHint: Long): PositionOutputStream = LocalPositionOutputStream(Files.newOutputStream(path))
 
     override fun supportsBlockSize(): Boolean = false
 
@@ -19,7 +19,7 @@ class LocalOutputFile(private val path: Path) : OutputFile {
 }
 
 private class LocalPositionOutputStream(
-    private val outputStream: OutputStream
+    private val outputStream: OutputStream,
 ) : PositionOutputStream() {
     private var position = 0L
 
@@ -28,7 +28,11 @@ private class LocalPositionOutputStream(
         position++
     }
 
-    override fun write(b: ByteArray, off: Int, len: Int) {
+    override fun write(
+        b: ByteArray,
+        off: Int,
+        len: Int,
+    ) {
         outputStream.write(b, off, len)
         position += len
     }

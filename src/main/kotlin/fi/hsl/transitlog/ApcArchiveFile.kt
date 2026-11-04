@@ -10,24 +10,33 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.Base64
 import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.CRC32
 
 /**
  * @param contentDuration The period for which the file should contain data
  */
-class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDescriptor, private val fastUpload: Boolean) : AutoCloseable {
-    //Path to the file
+class ApcArchiveFile(
+    val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDescriptor,
+    private val fastUpload: Boolean,
+) : AutoCloseable {
+    // Path to the file
     val path = apcFileDescriptor.file
-    //Duration for which the file should contain data
-    private val contentDuration = Duration.ofNanos(apcFileDescriptor.contentStart.until(apcFileDescriptor.contentEnd, ChronoUnit.NANOS))
+
+    // Duration for which the file should contain data
+    private val contentDuration =
+        Duration.ofNanos(
+            apcFileDescriptor.contentStart.until(apcFileDescriptor.contentEnd, ChronoUnit.NANOS),
+        )
 
     private val legacyCrcPath = path.parent.resolve(".${path.fileName}.crc")
 
-    private val passengerCountParquetWriter = PassengerCountParquetWriterBuilder(path)
-        .withCompressionCodec(CompressionCodecName.ZSTD) //Zstd has best balance between compression speed and ratio. Azure Data Factory might not support Zstd
-        .build()
+    private val passengerCountParquetWriter =
+        PassengerCountParquetWriterBuilder(path)
+            // Zstd balances compression speed and ratio; Azure Data Factory may not support it.
+            .withCompressionCodec(CompressionCodecName.ZSTD)
+            .build()
 
     private val lastModified = AtomicLong(System.nanoTime())
 
@@ -42,11 +51,12 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
     fun isReadyForUpload(): Boolean {
         val lastModifiedAgo = Duration.ofNanos(System.nanoTime() - lastModified.get())
 
-        //Fast upload is possible if the file contains data for the last 30 seconds and it has not been modified for one minute
-        val fastUploadPossible = fastUpload
-                && maxReceivedAt != null
-                && maxReceivedAt!!.until(apcFileDescriptor.contentEnd, ChronoUnit.SECONDS) <= 30
-                && lastModifiedAgo > Duration.ofMinutes(1)
+        // Fast upload is possible if the file contains data for the last 30 seconds and it has not been modified for one minute
+        val fastUploadPossible =
+            fastUpload &&
+                maxReceivedAt != null &&
+                maxReceivedAt!!.until(apcFileDescriptor.contentEnd, ChronoUnit.SECONDS) <= 30 &&
+                lastModifiedAgo > Duration.ofMinutes(1)
 
         return fastUploadPossible || lastModifiedAgo > contentDuration
     }
@@ -110,12 +120,13 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
                 crc.update(buffer, 0, bytesRead)
             }
         }
-        val crcBytes = byteArrayOf(
-            (crc.value ushr 24).toByte(),
-            (crc.value ushr 16).toByte(),
-            (crc.value ushr 8).toByte(),
-            crc.value.toByte()
-        )
+        val crcBytes =
+            byteArrayOf(
+                (crc.value ushr 24).toByte(),
+                (crc.value ushr 16).toByte(),
+                (crc.value ushr 8).toByte(),
+                crc.value.toByte(),
+            )
         metadata["parquet_crc"] = Base64.getEncoder().encodeToString(crcBytes)
 
         return metadata.toMap()
@@ -133,12 +144,19 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
         closed = true
     }
 
-    class ApcFileDescriptorFactory(private val dataDirectory: Path, private val contentDuration: Duration) {
+    class ApcFileDescriptorFactory(
+        private val dataDirectory: Path,
+        private val contentDuration: Duration,
+    ) {
         companion object {
             private val DATE_HOUR_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH")
         }
 
-        data class ApcFileDescriptor(val file: Path, val contentStart: Instant, val contentEnd: Instant)
+        data class ApcFileDescriptor(
+            val file: Path,
+            val contentStart: Instant,
+            val contentEnd: Instant,
+        )
 
         /**
          * @param timestamp Timestamp in milliseconds
@@ -156,7 +174,11 @@ class ApcArchiveFile(val apcFileDescriptor: ApcFileDescriptorFactory.ApcFileDesc
             val contentStart = receivedAtUtcTruncated.toInstant().plus(contentDuration.multipliedBy(part - 1))
             val contentEnd = contentStart.plus(contentDuration)
 
-            return ApcFileDescriptor(dataDirectory.resolve("apc_${DATE_HOUR_FORMATTER.format(dateHour)}-$part.parquet"), contentStart, contentEnd)
+            return ApcFileDescriptor(
+                dataDirectory.resolve("apc_${DATE_HOUR_FORMATTER.format(dateHour)}-$part.parquet"),
+                contentStart,
+                contentEnd,
+            )
         }
     }
 }

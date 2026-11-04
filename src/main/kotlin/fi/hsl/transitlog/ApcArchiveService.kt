@@ -7,7 +7,8 @@ import org.apache.pulsar.client.api.MessageId
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
-import java.util.*
+import java.util.ArrayList
+import java.util.LinkedList
 import java.util.concurrent.Executors
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -15,24 +16,30 @@ import kotlin.math.min
 
 private val log = KotlinLogging.logger {}
 
-class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val fastUpload: Boolean, private val ack: (MessageId) -> Unit) : AutoCloseable {
+class ApcArchiveService(
+    dataDirectory: Path,
+    private val sink: Sink,
+    private val fastUpload: Boolean,
+    private val ack: (MessageId) -> Unit,
+) : AutoCloseable {
     companion object {
         private const val MAX_QUEUE_SIZE = 500_000
 
         private val BATCH_WRITE_INTERVAL = Duration.ofSeconds(30)
 
-        //Each file contains data for 15 minutes
-        //TODO: this should be configurable
+        // Each file contains data for 15 minutes
+        // TODO: this should be configurable
         private val CONTENT_DURATION = Duration.ofMinutes(15)
     }
 
-    private val scheduledExecutor = Executors.newSingleThreadScheduledExecutor {
-        val thread = Thread(it)
-        thread.name = "AppArchiveServiceThread"
-        thread.isDaemon = true
+    private val scheduledExecutor =
+        Executors.newSingleThreadScheduledExecutor {
+            val thread = Thread(it)
+            thread.name = "AppArchiveServiceThread"
+            thread.isDaemon = true
 
-        return@newSingleThreadScheduledExecutor thread
-    }
+            return@newSingleThreadScheduledExecutor thread
+        }
 
     private val messageQueue = LinkedBlockingQueue<Pair<PassengerCount.Data, MessageId>>(MAX_QUEUE_SIZE)
 
@@ -44,24 +51,27 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
     init {
         Files.createDirectories(dataDirectory)
 
-        //Start task for writing data to files in batches every 30s
+        // Start task for writing data to files in batches every 30s
         scheduledExecutor.scheduleWithFixedDelay(
             { runScheduledTask("write APC data", ::writeData) },
             BATCH_WRITE_INTERVAL.toMillis(),
             BATCH_WRITE_INTERVAL.toMillis(),
-            TimeUnit.MILLISECONDS
+            TimeUnit.MILLISECONDS,
         )
 
-        //Start task for uploading data to Azure Blob Storage
+        // Start task for uploading data to Azure Blob Storage
         scheduledExecutor.scheduleWithFixedDelay(
             { runScheduledTask("upload ready APC files", ::uploadReadyFiles) },
             (CONTENT_DURATION + BATCH_WRITE_INTERVAL).toMillis(),
             CONTENT_DURATION.dividedBy(3).toMillis(),
-            TimeUnit.MILLISECONDS
+            TimeUnit.MILLISECONDS,
         )
     }
 
-    private fun runScheduledTask(taskName: String, task: () -> Unit) {
+    private fun runScheduledTask(
+        taskName: String,
+        task: () -> Unit,
+    ) {
         try {
             task()
         } catch (e: Exception) {
@@ -70,7 +80,7 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
     }
 
     private fun writeData() {
-        //Poll up to MAX_QUEUE_SIZE events from queue
+        // Poll up to MAX_QUEUE_SIZE events from queue
         val messages = ArrayList<Pair<PassengerCount.Data, MessageId>>(min(MAX_QUEUE_SIZE, messageQueue.size))
         for (i in 1..MAX_QUEUE_SIZE) {
             val msg = messageQueue.poll()
@@ -83,14 +93,15 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
 
         log.debug { "Writing ${messages.size} messages to files" }
 
-        val dataByFile = messages
-            //Group data to files based on the hour it was _received_
-            .groupBy { apcFileDescriptorFactory.createApcFileDescriptor(it.first.receivedAt) }
-            .mapKeys {
-                files.computeIfAbsent(it.key) { apcFileDescriptor ->
-                    ApcArchiveFile(apcFileDescriptor, fastUpload)
+        val dataByFile =
+            messages
+                // Group data to files based on the hour it was _received_
+                .groupBy { apcFileDescriptorFactory.createApcFileDescriptor(it.first.receivedAt) }
+                .mapKeys {
+                    files.computeIfAbsent(it.key) { apcFileDescriptor ->
+                        ApcArchiveFile(apcFileDescriptor, fastUpload)
+                    }
                 }
-            }
 
         dataByFile.forEach { (file, data) ->
             log.info { "Writing ${data.size} APC messages to ${file.path}" }
@@ -102,7 +113,7 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
                     msgIdsByFile.computeIfAbsent(file) { LinkedList<MessageId>() }.add(messageId)
                 } catch (e: Exception) {
                     log.warn(e) { "Failed to write data to APC archive: $apcData" }
-                    //Ack messages that could not be written so that we don't receive them again
+                    // Ack messages that could not be written so that we don't receive them again
                     ack(messageId)
                 }
             }
@@ -118,7 +129,12 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
                 val messageIds = msgIdsByFile[apcArchiveFile] ?: emptyList()
 
                 log.info { "Uploading ${apcArchiveFile.path}" }
-                sink.upload(apcArchiveFile.path, apcArchiveFile.path.fileName.toString(), metadata = apcArchiveFile.getMetadata(), tags = apcArchiveFile.getTags())
+                sink.upload(
+                    apcArchiveFile.path,
+                    apcArchiveFile.path.fileName.toString(),
+                    metadata = apcArchiveFile.getMetadata(),
+                    tags = apcArchiveFile.getTags(),
+                )
                 log.info { "Uploaded ${apcArchiveFile.path}, acknowledging ${messageIds.size} messages" }
 
                 messageIds.forEach(ack)
@@ -130,7 +146,10 @@ class ApcArchiveService(dataDirectory: Path, private val sink: Sink, private val
             }
     }
 
-    fun addToWriteQueue(passengerCount: PassengerCount.Data, messageId: MessageId) {
+    fun addToWriteQueue(
+        passengerCount: PassengerCount.Data,
+        messageId: MessageId,
+    ) {
         messageQueue.put(passengerCount to messageId)
     }
 

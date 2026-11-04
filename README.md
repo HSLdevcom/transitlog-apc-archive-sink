@@ -1,10 +1,10 @@
-# transitlog-apc-archive-sink [![Test and create Docker image](https://github.com/HSLdevcom/transitlog-apc-archive-sink/actions/workflows/test-and-build.yml/badge.svg)](https://github.com/HSLdevcom/transitlog-apc-archive-sink/actions/workflows/test-and-build.yml)
+# transitlog-apc-archive-sink [![CI/CD](https://github.com/HSLdevcom/transitlog-apc-archive-sink/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/HSLdevcom/transitlog-apc-archive-sink/actions/workflows/ci-cd.yml)
 
 Sink for writing APC (i.e. passenger count) data to Parquet files, which are stored in Blob Storage. 
 
 ## Building
 
-Building runnable JAR:
+Building the runnable JAR (requires Java 25):
 ```bash
 ./gradlew shadowJar
 ```

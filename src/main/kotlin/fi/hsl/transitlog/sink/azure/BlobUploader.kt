@@ -11,24 +11,32 @@ private const val BUFFER_SIZE = 65536
 
 class BlobUploader private constructor(
     private val blobServiceClient: BlobServiceClient,
-    private val blobContainer: String
+    private val blobContainer: String,
 ) {
     private val log = KotlinLogging.logger {}
 
     companion object {
-        fun withDefaultAzureCredential(blobAccountName: String, blobContainer: String): BlobUploader {
-            val client = BlobServiceClientBuilder()
-                .endpoint("https://$blobAccountName.blob.core.windows.net")
-                .credential(DefaultAzureCredentialBuilder().build())
-                .buildClient()
+        fun withDefaultAzureCredential(
+            blobAccountName: String,
+            blobContainer: String,
+        ): BlobUploader {
+            val client =
+                BlobServiceClientBuilder()
+                    .endpoint("https://$blobAccountName.blob.core.windows.net")
+                    .credential(DefaultAzureCredentialBuilder().build())
+                    .buildClient()
 
             return BlobUploader(client, blobContainer)
         }
 
-        fun withConnectionString(connectionString: String, blobContainer: String): BlobUploader {
-            val client = BlobServiceClientBuilder()
-                .connectionString(connectionString)
-                .buildClient()
+        fun withConnectionString(
+            connectionString: String,
+            blobContainer: String,
+        ): BlobUploader {
+            val client =
+                BlobServiceClientBuilder()
+                    .connectionString(connectionString)
+                    .buildClient()
 
             return BlobUploader(client, blobContainer)
         }
@@ -48,7 +56,7 @@ class BlobUploader private constructor(
         path: Path,
         blobName: String = path.fileName.toString(),
         metadata: Map<String, String>? = null,
-        tags: Map<String, String>? = null
+        tags: Map<String, String>? = null,
     ): String {
         log.info { "Uploading $path to blob $blobName" }
 
@@ -63,13 +71,13 @@ class BlobUploader private constructor(
         }
 
         if (!metadata.isNullOrEmpty()) {
-            log.info { "Adding metadata to blob $blobName (${metadata})" }
+            log.info { "Adding metadata to blob $blobName ($metadata)" }
             blobClient.setMetadata(metadata)
             log.debug { "Added metadata to blob $blobName" }
         }
 
         if (!tags.isNullOrEmpty()) {
-            log.info { "Adding tags to blob $blobName (${tags})" }
+            log.info { "Adding tags to blob $blobName ($tags)" }
             blobClient.tags = tags
             log.debug { "Added tags to blob $blobName" }
         }

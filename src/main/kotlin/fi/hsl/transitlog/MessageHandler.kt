@@ -15,7 +15,10 @@ import java.util.concurrent.Semaphore
 
 private val log = KotlinLogging.logger {}
 
-class MessageHandler(private val pulsarApplicationContext: PulsarApplicationContext) : IMessageHandler, AutoCloseable {
+class MessageHandler(
+    private val pulsarApplicationContext: PulsarApplicationContext,
+) : IMessageHandler,
+    AutoCloseable {
     private val config = pulsarApplicationContext.config!!
 
     private val blobAccountName = config.getString("application.sink.azure.blobAccountName")
@@ -23,21 +26,22 @@ class MessageHandler(private val pulsarApplicationContext: PulsarApplicationCont
 
     private val unackedMessageLimiter = Semaphore(config.getInt("application.maxUnackedMessages"))
 
-    private val apcArchiveService = ApcArchiveService(
-        Paths.get("apc"),
-        AzureSink(BlobUploader.withDefaultAzureCredential(blobAccountName, blobContainer)),
-        config.getBoolean("application.fastUpload"),
-        ::ack
-    )
+    private val apcArchiveService =
+        ApcArchiveService(
+            Paths.get("apc"),
+            AzureSink(BlobUploader.withDefaultAzureCredential(blobAccountName, blobContainer)),
+            config.getBoolean("application.fastUpload"),
+            ::ack,
+        )
 
     private fun ack(messageId: MessageId) {
-        pulsarApplicationContext.consumer!!.acknowledgeAsync(messageId)
+        pulsarApplicationContext.consumer!!
+            .acknowledgeAsync(messageId)
             .exceptionally { throwable ->
-                //TODO: should we stop the application when ack fails?
+                // TODO: should we stop the application when ack fails?
                 log.error("Failed to ack Pulsar message", throwable)
                 null
-            }
-            .thenRun { unackedMessageLimiter.release() }
+            }.thenRun { unackedMessageLimiter.release() }
     }
 
     override fun handleMessage(msg: Message<*>) {
@@ -51,14 +55,16 @@ class MessageHandler(private val pulsarApplicationContext: PulsarApplicationCont
             } catch (e: Exception) {
                 log.warn(e) { "Failed to handle message" }
 
-                //Ack messages that could not be handled
+                // Ack messages that could not be handled
                 ack(msg.messageId)
             }
         } else {
             log.warn {
-                "Received invalid protobuf schema, expected PassengerCount but received ${TransitdataSchema.parseFromPulsarMessage(msg).orElse(null)}"
+                "Received invalid protobuf schema, expected PassengerCount but received ${TransitdataSchema.parseFromPulsarMessage(
+                    msg,
+                ).orElse(null)}"
             }
-            //Ack messages with invalid schema so that we don't receive them again
+            // Ack messages with invalid schema so that we don't receive them again
             ack(msg.messageId)
         }
     }

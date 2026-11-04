@@ -1,0 +1,67 @@
+name: CI/CD
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ci-cd:
+    uses: HSLdevcom/transitdata-shared-workflows/.github/workflows/ci-cd-kotlin.yml@main
+    with:
+      runTestsInsideDocker: false
+    secrets: inherit
+
+  docker-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - name: Run unit tests inside Docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          DOCKER_BUILDKIT: "1"
+        run: |
+          cat > /tmp/Dockerfile.test <<'DOCKERFILE'
+          # syntax=docker/dockerfile:1
+          FROM hsldevcom/infodevops-docker-base-images:1.0.2-25-java-jdk
+          WORKDIR /usr/app
+          COPY . .
+          RUN --mount=type=secret,id=github_token \
+              --mount=type=secret,id=github_actor \
+              export GITHUB_TOKEN="$(cat /run/secrets/github_token)" && \
+              export GITHUB_ACTOR="$(cat /run/secrets/github_actor)" && \
+              ./gradlew test --no-daemon
+          DOCKERFILE
+          docker build \
+            --secret id=github_token,env=GITHUB_TOKEN \
+            --secret id=github_actor,env=GITHUB_ACTOR \
+            -f /tmp/Dockerfile.test \
+            .
+
+  publish-edge-tag:
+    needs: [ci-cd, docker-tests]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+      - name: Log in to Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_INFODEVOPS_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_INFODEVOPS_TOKEN }}
+      - name: Tag the main image as edge
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          image_name="${REPOSITORY,,}"
+          docker buildx imagetools create \
+            --tag "${image_name}:edge" \
+            "${image_name}:main"
