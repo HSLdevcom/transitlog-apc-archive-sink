@@ -91,7 +91,7 @@ class ApcArchiveService(
             }
         }
 
-        log.debug { "Writing ${messages.size} messages to files" }
+        log.info { "Writing ${messages.size} messages to files" }
 
         val dataByFile =
             messages
