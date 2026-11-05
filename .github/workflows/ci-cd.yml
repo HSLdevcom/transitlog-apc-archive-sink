@@ -5,46 +5,22 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: read
+
 jobs:
   ci-cd:
-    uses: HSLdevcom/transitdata-shared-workflows/.github/workflows/ci-cd-kotlin.yml@main
+    uses: HSLdevcom/transitdata-shared-workflows/.github/workflows/ci-cd-kotlin.yml@234db0afad207e5af97e17e597b9f0933d22b4c0 # main
+    permissions:
+      contents: read
+      packages: read
     with:
       runTestsInsideDocker: false
     secrets: inherit
 
-  docker-tests:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - name: Checkout
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
-      - name: Run unit tests inside Docker
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_ACTOR: ${{ github.actor }}
-          DOCKER_BUILDKIT: "1"
-        run: |
-          cat > /tmp/Dockerfile.test <<'DOCKERFILE'
-          # syntax=docker/dockerfile:1
-          FROM hsldevcom/infodevops-docker-base-images:1.0.2-25-java-jdk
-          WORKDIR /usr/app
-          COPY . .
-          RUN --mount=type=secret,id=github_token \
-              --mount=type=secret,id=github_actor \
-              export GITHUB_TOKEN="$(cat /run/secrets/github_token)" && \
-              export GITHUB_ACTOR="$(cat /run/secrets/github_actor)" && \
-              ./gradlew test --no-daemon
-          DOCKERFILE
-          docker build \
-            --secret id=github_token,env=GITHUB_TOKEN \
-            --secret id=github_actor,env=GITHUB_ACTOR \
-            -f /tmp/Dockerfile.test \
-            .
-
   publish-edge-tag:
-    needs: [ci-cd, docker-tests]
+    needs: ci-cd
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
