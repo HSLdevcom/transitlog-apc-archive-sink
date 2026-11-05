@@ -18,7 +18,8 @@ jobs:
       packages: read
     with:
       runTestsInsideDocker: false
-    secrets: inherit
+    # The shared workflow does not declare workflow_call secrets, so named forwarding is not supported.
+    secrets: inherit # zizmor: ignore[secrets-inherit]
 
   publish-edge-tag:
     needs: ci-cd
