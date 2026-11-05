@@ -10,5 +10,6 @@ RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
 FROM hsldevcom/infodevops-docker-base-images:1.0.2-25-java-jre
 WORKDIR /usr/app
 COPY --from=build /usr/app/build/libs/transitlog-apc-archive-sink.jar /usr/app/transitlog-apc-archive-sink.jar
+RUN mkdir -p /usr/app/apc && chown 10001:10001 /usr/app/apc
 USER 10001:10001
 ENTRYPOINT ["java", "-XX:InitialRAMPercentage=10.0", "-XX:MaxRAMPercentage=95.0", "-jar", "/usr/app/transitlog-apc-archive-sink.jar"]
