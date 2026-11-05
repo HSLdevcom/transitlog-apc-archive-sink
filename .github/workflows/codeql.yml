@@ -1,11 +1,16 @@
+---
 name: "Code analysis"
-on:
+'on':
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   schedule:
     - cron: '0 8 * * *'
+
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze code

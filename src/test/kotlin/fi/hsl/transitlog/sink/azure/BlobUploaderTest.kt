@@ -14,6 +14,10 @@ import kotlin.test.assertEquals
 
 @Testcontainers
 class BlobUploaderTest {
+    // This is the documented public key used by the local Azurite emulator.
+    private val azuriteAccountKey =
+        "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==" // gitleaks:allow
+
     @TempDir
     lateinit var tempDir: Path
 
@@ -28,7 +32,8 @@ class BlobUploaderTest {
     @BeforeEach
     fun generateConnString() {
         connString =
-            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://${azurite.host}:${azurite.firstMappedPort}/devstoreaccount1;"
+            "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;" +
+            "AccountKey=$azuriteAccountKey;BlobEndpoint=http://${azurite.host}:${azurite.firstMappedPort}/devstoreaccount1;"
     }
 
     @Test
