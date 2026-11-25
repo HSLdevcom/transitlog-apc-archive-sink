@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM hsldevcom/infodevops-docker-base-images:1.0.2-25-java-jdk AS build
+FROM hsldevcom/infodevops-docker-base-images:1.1.1-25-java-jdk AS build
 WORKDIR /usr/app
 COPY . .
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN \
     --mount=type=secret,id=github_actor,env=GITHUB_ACTOR \
     ./gradlew --no-daemon shadowJar
 
-FROM hsldevcom/infodevops-docker-base-images:1.0.2-25-java-jre
+FROM hsldevcom/infodevops-docker-base-images:1.1.1-25-java-jre
 WORKDIR /usr/app
 COPY --from=build /usr/app/build/libs/transitlog-apc-archive-sink.jar /usr/app/transitlog-apc-archive-sink.jar
 RUN mkdir -p /usr/app/apc && chown 10001:10001 /usr/app/apc
